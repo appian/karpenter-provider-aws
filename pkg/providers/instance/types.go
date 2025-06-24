@@ -40,6 +40,7 @@ type Instance struct {
 	SubnetID              string
 	Tags                  map[string]string
 	EFAEnabled            bool
+	Tenancy               string
 }
 
 func NewInstance(ctx context.Context, out ec2types.Instance) *Instance {
@@ -69,8 +70,16 @@ func NewInstance(ctx context.Context, out ec2types.Instance) *Instance {
 		EFAEnabled: lo.ContainsBy(out.NetworkInterfaces, func(item ec2types.InstanceNetworkInterface) bool {
 			return item.InterfaceType != nil && *item.InterfaceType == string(ec2types.NetworkInterfaceTypeEfa)
 		}),
+		Tenancy: tenancyFromInstance(out),
 	}
+}
 
+func tenancyFromInstance(instance ec2types.Instance) string {
+	var tenancy = instance.Placement.Tenancy
+	if tenancy == "" {
+		tenancy = ec2types.TenancyDefault
+	}
+	return string(tenancy)
 }
 
 func NewInstanceFromFleet(
@@ -79,6 +88,7 @@ func NewInstanceFromFleet(
 	capacityType string,
 	capacityReservationID string,
 	efaEnabled bool,
+	tenancy string,
 ) *Instance {
 	return &Instance{
 		LaunchTime:            time.Now(), // estimate the launch time since we just launched
@@ -92,5 +102,6 @@ func NewInstanceFromFleet(
 		SubnetID:              lo.FromPtr(out.LaunchTemplateAndOverrides.Overrides.SubnetId),
 		Tags:                  tags,
 		EFAEnabled:            efaEnabled,
+		Tenancy:               tenancy,
 	}
 }
