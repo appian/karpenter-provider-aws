@@ -433,6 +433,7 @@ func (c *CloudProvider) instanceToNodeClaim(i *instance.Instance, instanceType *
 		}
 	}
 	labels[karpv1.CapacityTypeLabelKey] = i.CapacityType
+	labels[v1.LabelTenancy] = i.Tenancy
 	if i.CapacityType == karpv1.CapacityTypeReserved {
 		labels[cloudprovider.ReservationIDLabel] = i.CapacityReservationID
 	}

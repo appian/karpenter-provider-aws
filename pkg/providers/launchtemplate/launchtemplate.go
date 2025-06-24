@@ -58,7 +58,7 @@ import (
 
 type Provider interface {
 	EnsureAll(context.Context, *v1.EC2NodeClass, *karpv1.NodeClaim,
-		[]*cloudprovider.InstanceType, string, map[string]string) ([]*LaunchTemplate, error)
+		[]*cloudprovider.InstanceType, string, map[string]string, string) ([]*LaunchTemplate, error)
 	DeleteAll(context.Context, *v1.EC2NodeClass) error
 	InvalidateCache(context.Context, string, string)
 	ResolveClusterCIDR(context.Context) error
@@ -122,6 +122,7 @@ func (p *DefaultProvider) EnsureAll(
 	instanceTypes []*cloudprovider.InstanceType,
 	capacityType string,
 	tags map[string]string,
+	tenancyType string,
 ) ([]*LaunchTemplate, error) {
 	p.Lock()
 	defer p.Unlock()
@@ -134,7 +135,7 @@ func (p *DefaultProvider) EnsureAll(
 	if err != nil {
 		return nil, err
 	}
-	resolvedLaunchTemplates, err := p.amiFamily.Resolve(nodeClass, nodeClaim, instanceTypes, capacityType, opts)
+	resolvedLaunchTemplates, err := p.amiFamily.Resolve(nodeClass, nodeClaim, instanceTypes, capacityType, opts, tenancyType)
 	if err != nil {
 		return nil, err
 	}
@@ -295,6 +296,9 @@ func GetCreateLaunchTemplateInput(
 			},
 			NetworkInterfaces: networkInterfaces,
 			TagSpecifications: launchTemplateDataTags,
+			Placement: &ec2types.LaunchTemplatePlacementRequest{
+				Tenancy: ec2types.Tenancy(options.Tenancy),
+			},
 		},
 		TagSpecifications: []ec2types.TagSpecification{
 			{
